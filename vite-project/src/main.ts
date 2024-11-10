@@ -15,7 +15,50 @@ import { Color, ColorF } from "./color";
 import { getTruncatedText } from "./text-drawing";
 import { WasmLib } from "./wasm";
 
-const lib = new WasmLib();
+// const lib = new WasmLib();
+
+const lib = await WasmLib.create();
+
+registerRenderLayerHook("main", (layer) => {
+  const ci = layer.setupContext("2d");
+
+  const fb = lib.createFrameBuffer(ci.width, ci.height);
+
+  if (!fb) {
+    throw new Error("Failed to create frame buffer");
+  }
+
+  let imgData = new ImageData(ci.width, ci.height);
+
+  let frameCounter = 0;
+
+  const rs = scheduleRenderFrames({
+    frame: (t, d) => {
+      if (frameCounter === 0) {
+        console.log("fps", 1000 / d);
+      }
+
+      lib.renderToBuffer(fb, d);
+      const view = lib.getBufferData(fb);
+
+      imgData.data.set(view);
+      // const imgBit = createImageBitmap()
+
+      ci.context.putImageData(imgData, 0, 0);
+
+      frameCounter += 1;
+      frameCounter %= 60;
+    },
+    startImmediately: true,
+  });
+
+  layer.subscribe("resized", () => {
+    lib.resizeFrameBuffer(fb, ci.width, ci.height);
+    imgData = new ImageData(ci.width, ci.height);
+  });
+
+  // rs.start();
+});
 
 // const COUNT = 1;
 // const PARTICLE_SIZE = 20;

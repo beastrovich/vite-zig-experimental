@@ -7,6 +7,7 @@ pub fn build(b: *std.Build) void {
     const features = std.Target.wasm.featureSet(&[_]std.Target.wasm.Feature{
         .bulk_memory,
         .atomics,
+        .simd128,
     });
 
     const target = b.resolveTargetQuery(.{ .cpu_arch = .wasm32, .os_tag = .freestanding, .cpu_features_add = features });
@@ -14,7 +15,7 @@ pub fn build(b: *std.Build) void {
     // const optimize = b.standardOptimizeOption(.{ .preferred_optimize_mode = .ReleaseFast });
 
     const wasmArt = b.addExecutable(.{
-        .name = "blob",
+        .name = "wasm",
         // In this case the main source file is merely a path, however, in more
         // complicated build scripts, this could be a generated file.
         .root_source_file = b.path("src/root.zig"),

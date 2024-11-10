@@ -13,7 +13,12 @@ import { layerMounted, layerNameChanged, layerUnmounted } from "./registry";
 const viewportResizeObserver = new ResizeObserver((entries) => {
   for (const entry of entries) {
     const viewport = entry.target as RenderLayerElement;
-    viewport.onResized();
+    if (!entry.devicePixelContentBoxSize) {
+      viewport.onResized(viewport.offsetWidth, viewport.offsetHeight);
+    } else {
+      const s = entry.devicePixelContentBoxSize[0];
+      viewport.onResized(s.inlineSize, s.blockSize);
+    }
   }
 });
 
@@ -65,6 +70,11 @@ export class RenderLayerElement extends HTMLElement {
   static observedAttributes = ["name"];
 
   private _shadow: ShadowRoot;
+
+  private _devicePixelBox: {
+    width: number;
+    height: number;
+  };
 
   private _contextInfo: RenderLayerContextInfo<any> | null;
   private _canvas: HTMLCanvasElement | null;
@@ -119,6 +129,11 @@ export class RenderLayerElement extends HTMLElement {
     };
 
     this._canvas = null;
+
+    this._devicePixelBox = {
+      width: 0,
+      height: 0,
+    };
   }
 
   connectedCallback() {
@@ -133,8 +148,12 @@ export class RenderLayerElement extends HTMLElement {
     layerUnmounted(this._layer, this.name);
   }
 
-  onResized() {
+  onResized(width: number, height: number) {
+    this._devicePixelBox.width = width;
+    this._devicePixelBox.height = height;
+
     if (!this._contextInfo) return;
+
     this.setCanvasSize(this._contextInfo);
     for (const callback of this._eventCallbacks.resized) {
       callback();
@@ -142,17 +161,11 @@ export class RenderLayerElement extends HTMLElement {
   }
 
   private setCanvasSize(ci: RenderLayerContextInfo<any>) {
-    const dpr = window.devicePixelRatio;
-    const width = this.offsetWidth;
-    const height = this.offsetHeight;
-
-    ci.width = width * dpr;
-    ci.height = height * dpr;
+    ci.width = this._devicePixelBox.width;
+    ci.height = this._devicePixelBox.height;
 
     this._canvas!.width = ci.width;
     this._canvas!.height = ci.height;
-
-    ci.dpr = dpr;
   }
 
   private ensureCanvas(contextType: ContextType, options: any) {
