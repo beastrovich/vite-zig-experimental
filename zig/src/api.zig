@@ -2,6 +2,7 @@ const std = @import("std");
 const fb = @import("./frame-buffer.zig");
 const libState = @import("./lib-state.zig");
 const jsImports = @import("./js-imports.zig");
+const wrk = @import("./worker-pool.zig");
 
 export fn testus() u32 {
     return 2;
@@ -61,15 +62,86 @@ const fallingDots: u32 = 1000;
 
 var fallingDotPos: [fallingDots]Vector2f = undefined;
 
+fn dimBufferSlice(b: []u8) void {
+    // Process 4 bytes at a time using simple multiplication
+    var i: usize = 0;
+    while (i + 3 < b.len) : (i += 4) {
+        b[i + 0] = @intCast((@as(u16, @intCast(b[i + 0])) * 253) / 260);
+        b[i + 1] = @intCast((@as(u16, @intCast(b[i + 1])) * 253) / 260);
+        b[i + 2] = @intCast((@as(u16, @intCast(b[i + 2])) * 253) / 260);
+        b[i + 3] = b[i + 3]; // Alpha channel stays unchanged
+    }
+}
+
+const RenderJob = struct {
+    const Self = @This();
+
+    buffer: []u8,
+
+    pub fn run(self: *const Self) void {
+        dimBufferSlice(self.buffer);
+    }
+
+    pub const WorkerJobImpl: wrk.WorkerJob.VTable = .{
+        .run = RenderJob.run,
+    };
+
+    pub fn init(buffer: []u8) RenderJob {
+        return .{
+            .buffer = buffer,
+        };
+    }
+
+    pub fn workerJob(self: *const Self) wrk.WorkerJob {
+        return .{
+            .ptr = self,
+            .vtable = WorkerJobImpl,
+        };
+    }
+};
+
 fn renderToBuffer(
     target: *const fb.FrameBufferState,
     delta: f32,
 ) void {
+    
+
     // _ = delta; // autofix
+    const g = libState.globals;
+
+    if (g.workers == null) {
+        return;
+    }
+    const workers: *wrk.WorkerMan = @ptrCast(g.workers);
+
     const w = target.info.size.width;
     const h = target.info.size.height;
     const wf: f32 = @floatFromInt(w);
     const hf: f32 = @floatFromInt(h);
+
+    const len = w * h * 4;
+
+    var alloc = g.frameArena.allocator();
+
+    const split = len / workers.workerCount();
+    const remainder = len % workers.workerCount();
+
+    const jobAdder = workers.jobAdder();
+
+    for (0..workers.workerCount()) |i| {
+        const job = alloc.create(RenderJob) catch unreachable;
+        if (i == workers.workerCount() - 1) {
+            job.* = RenderJob.init(target.buffer[i * split..len]);
+        } else {
+            job.* = RenderJob.init(target.buffer[i * split..(i + 1) * split]);
+        }
+        workers.
+    }
+
+    // const childJobCount = 
+    // const RenderJob: wrk.WorkerJob = .{
+    //     .ptr =
+    // }
 
     var prng = std.Random.DefaultPrng.init(@bitCast(@as(f64, @floatCast(delta))));
     var r = prng.random();
@@ -78,20 +150,7 @@ fn renderToBuffer(
 
         // Direct pointer to bytes for maximum speed
         var ptr = target.buffer[0..len];
-
-        // Process 8 bytes at a time using simple multiplication
-
-        var i: usize = 0;
-        while (i + 3 < len) : (i += 4) {
-            ptr[i + 0] = @intCast((@as(u16, @intCast(ptr[i + 0])) * 253) / 260);
-            ptr[i + 1] = @intCast((@as(u16, @intCast(ptr[i + 1])) * 253) / 260);
-            ptr[i + 2] = @intCast((@as(u16, @intCast(ptr[i + 2])) * 253) / 260);
-            ptr[i + 3] = ptr[i + 3]; // Alpha channel stays unchanged
-            // ptr[i + 4] = @intCast((@as(u16, @intCast(ptr[i + 4])) * 253) >> 8);
-            // ptr[i + 5] = @intCast((@as(u16, @intCast(ptr[i + 5])) * 253) >> 8);
-            // ptr[i + 6] = @intCast((@as(u16, @intCast(ptr[i + 6])) * 253) >> 8);
-            // ptr[i + 7] = ptr[i + 7]; // Alpha channel stays unchanged
-        }
+        _ = ptr; // autofix
     }
 
     // animate dots
@@ -128,6 +187,9 @@ export fn __renderFrame(bufferId: u32, delta: f32) void {
 }
 
 export fn __initMain() void {
+    _ = libState.initGlobals();
+    _ = libState.globals.startWorkerManager();
+
     var prng = std.Random.DefaultPrng.init(0);
     var r = prng.random();
     // intialize dots to random positions
@@ -137,10 +199,28 @@ export fn __initMain() void {
             .y = r.float(f32),
         };
     }
-
-    _ = libState.initGlobals();
 }
 
-export fn __initWorker(glbPtr: *libState.Globals) void {
-    libState.globals = glbPtr;
+export fn __timerCallback(callback: *anyopaque, state: *anyopaque) void {
+    const cb: *const fn (*anyopaque) void = @ptrCast(callback);
+    cb(state);
+}
+
+export fn __runWorker(globals: *libState.Globals, idx: u32) void {
+    libState.globals = globals;
+    const g = globals;
+    if (g.workers == null) {
+        return;
+    }
+    const workers: *wrk.WorkerMan = @ptrCast(g.workers);
+
+    while (true) {
+        workers.workerWaitReady();
+
+        const jobs = workers.jobBuffers[idx];
+
+        for (jobs.constSlice()) |job| {
+            job.vtable.run(job.ptr);
+        }
+    }
 }

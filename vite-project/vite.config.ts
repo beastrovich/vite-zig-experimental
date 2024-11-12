@@ -7,7 +7,13 @@ import { watch } from "fs/promises";
 
 import Choki from "chokidar";
 
-const srcWasmPath = Path.join(import.meta.dir, "src", "wasm", "wasm.wasm");
+const srcWasmPath = Path.join(
+  import.meta.dir,
+  "src",
+  "wasm",
+  "process",
+  "wasm.wasm"
+);
 
 let foo = 1;
 export default {

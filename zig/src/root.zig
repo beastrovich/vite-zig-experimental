@@ -1,6 +1,18 @@
 const std = @import("std");
+const Env = @import("./Env.zig");
+const entry = @import("./entry.zig");
 
-usingnamespace @import("./api.zig");
+comptime {
+    _ = Env;
+    _ = entry;
+}
+
+// comptime {
+//     _ = Env;
+//     _ = entry;
+// }
+
+// usingnamespace @import("./api.zig");
 
 // fn init_main() !void {
 //     js.log("Initializing main");

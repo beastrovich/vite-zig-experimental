@@ -1,17 +1,12 @@
 const std = @import("std");
 const fb = @import("./frame-buffer.zig");
 const jsImport = @import("./js-imports.zig");
+const wrk = @import("./worker-pool.zig");
 
 const Renderer = struct {
     const Self = @This();
 
     frameBuffers: fb.FrameBuffers = .{},
-
-    // pub fn init() Self {
-    //     return .{
-    //         .frameBuffers = fb.FrameBuffers.init(),
-    //     };
-    // }
 };
 
 pub const Globals = struct {
@@ -22,25 +17,32 @@ pub const Globals = struct {
     galloc: GAlloc = .{},
     renderer: Renderer = .{},
 
+    workers: ?*wrk.WorkerMan = null,
 
-    threadJobs: std.ArrayList(*anyopaque) = undefined
+    frameArena: std.heap.ArenaAllocator,
 
-    // pub fn init(self: *Self) void {
-    // _ = self; // autofix
+    pub fn startWorkerManager(self: *Self) *wrk.WorkerMan {
+        if (self.workers == null) {
+            self.workers = wrk.createWorkerManager(self.galloc.allocator()) catch |err| {
+                jsImport.logFmtSmall(50, "Error initializing worker manager: {s}", .{@errorName(err)});
+                unreachable;
+            };
+        }
+        return @ptrCast(self.workers);
+    }
 
-    // self.galloc = std.heap.GeneralPurposeAllocator(.{ .thread_safe = true }){};
-    // self.renderer = Renderer.init();
-    // }
+    pub fn init() Self {
+        const galloc = GAlloc{};
+        const alloc = galloc.allocator();
+        const frameArena = std.heap.ArenaAllocator.init(alloc);
+        return .{
+            .galloc = galloc,
+            .frameArena = frameArena,
+        };
+    }
 };
 
 pub var globals: *Globals = undefined;
-
-// pub inline fn get() *Globals {
-//   if (globals == null) {
-//     initGlobals(null);
-//   }
-//   return globals;
-// }
 
 pub fn initGlobals() *Globals {
     globals = std.heap.page_allocator.create(Globals) catch |err| {
@@ -48,10 +50,8 @@ pub fn initGlobals() *Globals {
         unreachable;
     };
     jsImport.logFmtSmall(100, "Initializing globals at {d}", .{@intFromPtr(globals)});
-    globals.* = .{
-      .threadJobs = 
-    };
-    // globals.init();
+    globals.* = Globals.init();
+
     return globals;
 }
 

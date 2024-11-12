@@ -20,7 +20,8 @@ pub fn build(b: *std.Build) void {
         // complicated build scripts, this could be a generated file.
         .root_source_file = b.path("src/root.zig"),
         .target = target,
-        .optimize = .ReleaseFast,
+        .optimize = .ReleaseSafe,
+        .single_threaded = false,
     });
 
     wasmArt.rdynamic = true;
@@ -52,7 +53,7 @@ pub fn build(b: *std.Build) void {
     // b.install_prefix = "fwefwe";
     // b.installArtifact(wasmArt);
     // b.install_prefix = b.pathResolve(.{"foo"});
-    const installArt = b.addInstallArtifact(wasmArt, .{ .dest_dir = .{ .override = .{ .custom = "../../vite-project/src/wasm" } } });
+    const installArt = b.addInstallArtifact(wasmArt, .{ .dest_dir = .{ .override = .{ .custom = "../../vite-project/src/wasm/process" } } });
 
     b.getInstallStep().dependOn(&installArt.step);
     // // Creates a step for unit testing. This only builds the test executable
