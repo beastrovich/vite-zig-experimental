@@ -65,6 +65,8 @@ inline fn __get_stack_pointer() [*]u8 {
 }
 
 pub export fn __wasm_workerStart(global_context_ptr: *GlobalContext, function: *const anyopaque, data_ptr: ?*anyopaque, idx: u32) void {
+    // _ = function; // autofix
+    // _ = data_ptr; // autofix
     // const stackPtr: [*]u8 = ;
     // Env.logFmtSmall(100, "zig: __wasm_workerStart stackPtr: 0x{x}", .{@intFromPtr(stackPtr)});
 
@@ -73,10 +75,12 @@ pub export fn __wasm_workerStart(global_context_ptr: *GlobalContext, function: *
     Env.log("zig: __wasm_workerStart");
     GlobalContext.setCurrent(global_context_ptr);
 
-    // _ = global_context_ptr; // autofix
+    // Env.logFmtSmall(1000, "zig: __wasm_workerStart idx: {d}", .{idx});
+
+    // // _ = global_context_ptr; // autofix
     const fnPtr: *const fn (?*anyopaque) void = @ptrCast(function);
-    // // log foo
-    // Env.logFmtSmall(100, "foo: {d}", .{foo});
+    // // // log foo
+    // // Env.logFmtSmall(100, "foo: {d}", .{foo});
 
     fnPtr(data_ptr);
 }
