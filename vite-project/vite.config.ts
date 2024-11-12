@@ -4,11 +4,12 @@ import { watch } from "fs/promises";
 
 // import Bun from "bun";
 // Bun.
+console.log(import.meta);
 
 import Choki from "chokidar";
 
 const srcWasmPath = Path.join(
-  import.meta.dir,
+  import.meta.dirname,
   "src",
   "wasm",
   "process",

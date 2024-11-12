@@ -4,7 +4,7 @@ const Self = @This();
 const builtin = @import("builtin");
 
 const Impl = if (builtin.target.isWasm() and builtin.target.os.tag == .freestanding)
-    @import("./env/BrowserEnv.zig")
+    @import("./Env.BrowserEnv.zig")
 else
     @compileError("Unsupported target");
 

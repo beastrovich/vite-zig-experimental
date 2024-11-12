@@ -7,7 +7,8 @@ export type ModuleImports = {
     __workerStart(
       global_context_ptr: number,
       start_fn_ptr: number,
-      data_ptr: number
+      data_ptr: number,
+      idx: number
     ): void;
     // __setTimeout(timeout: number, cbPtr: number, statePtr: number): void;
   };
@@ -18,7 +19,8 @@ export type ModuleExports = {
   __wasm_workerStart(
     global_context_ptr: number,
     start_fn_ptr: number,
-    data_ptr: number
+    data_ptr: number,
+    idx: number
   ): void;
   // __buffAcquire(width: number, height: number): number;
   // __buffRelease(handle: number): void;

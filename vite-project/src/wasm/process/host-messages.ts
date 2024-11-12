@@ -3,4 +3,5 @@ export type ProcessHostMessageType = {
   globalContextPtr: number;
   startFnPtr: number;
   dataPtr: number;
+  idx: number;
 };

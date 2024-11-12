@@ -8,6 +8,7 @@ export type MessageType =
       globalContextPtr: number;
       startFnPtr: number;
       dataPtr: number;
+      idx: number;
     }
   | {
       type: "init:main";
@@ -24,11 +25,12 @@ async function initWorker(
   memory: WebAssembly.Memory,
   globalsPtr: number,
   startFnPtr: number,
-  dataPtr: number
+  dataPtr: number,
+  idx: number
 ) {
   const imports = createImports(memory);
   const wasm = await createModule(memory, imports);
-  wasm.exports.__wasm_workerStart(globalsPtr, startFnPtr, dataPtr);
+  wasm.exports.__wasm_workerStart(globalsPtr, startFnPtr, dataPtr, idx);
 }
 
 self.addEventListener("message", ({ data }: MessageEvent<MessageType>) => {
@@ -42,7 +44,8 @@ self.addEventListener("message", ({ data }: MessageEvent<MessageType>) => {
         data.memory,
         data.globalContextPtr,
         data.startFnPtr,
-        data.dataPtr
+        data.dataPtr,
+        data.idx
       );
       break;
     }

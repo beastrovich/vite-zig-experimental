@@ -29,13 +29,14 @@ export function createImports(memory: WebAssembly.Memory): ModuleImports {
       __consoleLog(ptr, len) {
         console.log(decodeText(memory.buffer, ptr, len));
       },
-      __workerStart(global_context_ptr, start_fn_ptr, data_ptr) {
+      __workerStart(global_context_ptr, start_fn_ptr, data_ptr, idx: number) {
         // console.log("Worker start", global_context_ptr, start_fn_ptr, data_ptr);
         self.postMessage({
           type: "worker:start",
           globalContextPtr: global_context_ptr,
           startFnPtr: start_fn_ptr,
           dataPtr: data_ptr,
+          idx,
         });
       },
     },

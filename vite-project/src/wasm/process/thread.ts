@@ -17,7 +17,8 @@ export function startWorkerThread(
   memory: WebAssembly.Memory,
   globalContextPtr: number,
   startFnPtr: number,
-  dataPtr: number
+  dataPtr: number,
+  idx: number
 ) {
   const worker = new Worker();
 
@@ -27,6 +28,7 @@ export function startWorkerThread(
     startFnPtr,
     dataPtr,
     memory,
+    idx,
   };
 
   worker.postMessage(initMsg);

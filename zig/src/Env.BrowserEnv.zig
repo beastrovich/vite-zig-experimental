@@ -1,11 +1,11 @@
 const std = @import("std");
 const Self = @This();
-const GlobalContext = @import("../GlobalContext.zig");
+const GlobalContext = @import("./GlobalContext.zig");
 
 extern "js" fn __sysGetCoreCount() u16;
 
 extern "js" fn __consoleLog(s: [*]const u8, sLen: usize) void;
-extern "js" fn __workerStart(global_context_ptr: *GlobalContext, function: *const anyopaque, data_ptr: ?*anyopaque) void;
+extern "js" fn __workerStart(global_context_ptr: *GlobalContext, function: *const anyopaque, data_ptr: ?*anyopaque, idx: u32) void;
 
 pub inline fn log(s: []const u8) void {
     __consoleLog(s.ptr, s.len);
@@ -16,6 +16,19 @@ pub inline fn cpuCount() u16 {
 }
 
 pub fn startThread(startFn: *const fn (?*anyopaque) void, data: ?*anyopaque) void {
+    const g = GlobalContext.current();
+    const idx = g.thread_idx;
+    g.thread_idx += 1;
+
+    // var fmtBuff: [200]u8 = undefined;
+    // const printed = std.fmt.bufPrint(&fmtBuff, "startThread: {d}, {d}", .{
+    //     @intFromPtr(g),
+    //     g.thread_idx,
+    // }) catch {
+    //     log("Error formatting message");
+    //     return;
+    // };
+    // log(printed);
     // _ = data; // autofix
     // log("startThread");
     // _ = startFn;
@@ -36,9 +49,10 @@ pub fn startThread(startFn: *const fn (?*anyopaque) void, data: ?*anyopaque) voi
     // log(printed);
 
     __workerStart(
-        GlobalContext.current(),
+        g,
         startFn,
         data,
+        idx,
     );
     // Impl.startThread(startFn, data);
 }
