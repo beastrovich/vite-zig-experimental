@@ -24,12 +24,14 @@ export class Process {
     switch (event.data.type) {
       case "worker:start": {
         const { dataPtr, globalContextPtr, startFnPtr, idx } = event.data;
-        startWorkerThread(
-          this.#memory,
-          globalContextPtr,
-          startFnPtr,
-          dataPtr,
-          idx
+        this.#onThreadStart(
+          startWorkerThread(
+            this.#memory,
+            globalContextPtr,
+            startFnPtr,
+            dataPtr,
+            idx
+          )
         );
         break;
       }

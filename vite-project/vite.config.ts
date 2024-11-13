@@ -16,7 +16,6 @@ const srcWasmPath = Path.join(
   "wasm.wasm"
 );
 
-let foo = 1;
 export default {
   server: {
     headers: {
@@ -46,4 +45,3 @@ export default {
     },
   ],
 } satisfies UserConfig;
-// /home/beastrovich/repos/labs/vite-zig/vite-project/src/wasm/blob.wasm

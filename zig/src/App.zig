@@ -29,7 +29,7 @@ fn startFn(data: ?*anyopaque) void {
     var prng = std.rand.DefaultPrng.init(@as(u64, id));
     var rand = prng.random();
 
-    const NUM_ITERATIONS = 10000;
+    const NUM_ITERATIONS = 100;
     var iter: usize = 0;
     while (iter < NUM_ITERATIONS) : (iter += 1) {
         // Fill buffer with thread-unique pattern
@@ -58,7 +58,7 @@ fn startFn(data: ?*anyopaque) void {
         }
 
         if (corrupted) {
-            Env.logFmtSmall(200, "Thread {d} iter {d} stack corruption at 0x{x} offset {d}: expected {d}, got {d}", .{
+            Env.logFmtSmall(500, "Thread {d} iter {d} stack corruption at 0x{x} offset {d}: expected {d}, got {d}", .{
                 id,
                 iter,
                 @intFromPtr(&stack_buffer) + corrupt_offset,
@@ -74,10 +74,20 @@ fn startFn(data: ?*anyopaque) void {
     }
 
     Env.logFmtSmall(100, "Thread {d} completed {d} iterations at stack 0x{x}", .{ id, NUM_ITERATIONS, @intFromPtr(&stack_buffer) });
+    // if (id < 20) {
+    //     Env.startThread(&startFn, null);
+    //     // Env.log("Thread 0 exiting");
+    // }
 }
 
 pub fn main() void {
     Env.startThread(&startFn, null);
     Env.startThread(&startFn, null);
     Env.startThread(&startFn, null);
+    Env.startThread(&startFn, null);
+    Env.startThread(&startFn, null);
+    Env.startThread(&startFn, null);
+    Env.startThread(&startFn, null);
+    // Env.startThread(&startFn, null);
+    // Env.startThread(&startFn, null);
 }

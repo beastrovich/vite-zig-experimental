@@ -32,4 +32,5 @@ export function startWorkerThread(
   };
 
   worker.postMessage(initMsg);
+  return worker;
 }

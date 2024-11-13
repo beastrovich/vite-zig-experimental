@@ -38,7 +38,8 @@ export function createMemory() {
   const maxInPages = Math.ceil((maxMegs * 1024) / 64);
 
   return new WebAssembly.Memory({
-    initial: 256,
+    // initial: 256 * 10,
+    initial: 3000,
     maximum: maxInPages,
     shared: true,
   });

@@ -30,6 +30,7 @@ async function initWorker(
 ) {
   const imports = createImports(memory);
   const wasm = await createModule(memory, imports);
+  console.log("web-worker: initWorker", globalsPtr, startFnPtr, dataPtr, idx);
   wasm.exports.__wasm_workerStart(globalsPtr, startFnPtr, dataPtr, idx);
 }
 

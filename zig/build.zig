@@ -10,7 +10,11 @@ pub fn build(b: *std.Build) void {
         .simd128,
     });
 
-    const target = b.resolveTargetQuery(.{ .cpu_arch = .wasm32, .os_tag = .freestanding, .cpu_features_add = features });
+    const target = b.resolveTargetQuery(.{
+        .cpu_arch = .wasm32,
+        .os_tag = .freestanding,
+        .cpu_features_add = features,
+    });
 
     // const optimize = b.standardOptimizeOption(.{ .preferred_optimize_mode = .ReleaseFast });
 
@@ -20,8 +24,11 @@ pub fn build(b: *std.Build) void {
         // complicated build scripts, this could be a generated file.
         .root_source_file = b.path("src/root.zig"),
         .target = target,
-        .optimize = .ReleaseSafe,
+        .optimize = .Debug,
         .single_threaded = false,
+        // .strip = false,
+        // .linkage = .dynamic,
+
     });
 
     wasmArt.rdynamic = true;
@@ -33,6 +40,7 @@ pub fn build(b: *std.Build) void {
     const mibi: usize = 1024 * 1024;
     const maxMem: usize = 1024 * 4 * mibi;
 
+    // wasmArt.initial_memory = 100 * pageSize;
     // Align max memory to page size using modulo
     // to the nearest larger or same page size
     const pageAlignedMaxMem = (maxMem + pageSize - 1) & ~(pageSize - 1);
@@ -53,7 +61,7 @@ pub fn build(b: *std.Build) void {
     // b.install_prefix = "fwefwe";
     // b.installArtifact(wasmArt);
     // b.install_prefix = b.pathResolve(.{"foo"});
-    const installArt = b.addInstallArtifact(wasmArt, .{ .dest_dir = .{ .override = .{ .custom = "../../vite-project/src/wasm/process" } } });
+    const installArt = b.addInstallArtifact(wasmArt, .{});
 
     b.getInstallStep().dependOn(&installArt.step);
     // // Creates a step for unit testing. This only builds the test executable

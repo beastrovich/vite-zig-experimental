@@ -1,6 +1,7 @@
 const GlobalContext = @import("./GlobalContext.zig");
 const App = @import("./App.zig");
 const Env = @import("./Env.zig");
+const std = @import("std");
 
 var foo: u32 = 1;
 
@@ -64,23 +65,18 @@ inline fn __get_stack_pointer() [*]u8 {
     );
 }
 
-pub export fn __wasm_workerStart(global_context_ptr: *GlobalContext, function: *const anyopaque, data_ptr: ?*anyopaque, idx: u32) void {
-    // _ = function; // autofix
-    // _ = data_ptr; // autofix
-    // const stackPtr: [*]u8 = ;
-    // Env.logFmtSmall(100, "zig: __wasm_workerStart stackPtr: 0x{x}", .{@intFromPtr(stackPtr)});
-
-    __set_stack_pointer(@ptrFromInt(0x10000 + 0xFFFF * idx));
-
+fn wasm_workerStart(global_context_ptr: *GlobalContext, function: *const fn (?*anyopaque) void, data_ptr: ?*anyopaque, idx: u32) void {
+    _ = idx; // autofix
     Env.log("zig: __wasm_workerStart");
     GlobalContext.setCurrent(global_context_ptr);
+    function(data_ptr);
+}
 
-    // Env.logFmtSmall(1000, "zig: __wasm_workerStart idx: {d}", .{idx});
-
-    // // _ = global_context_ptr; // autofix
-    const fnPtr: *const fn (?*anyopaque) void = @ptrCast(function);
-    // // // log foo
-    // // Env.logFmtSmall(100, "foo: {d}", .{foo});
-
-    fnPtr(data_ptr);
+pub export fn __wasm_workerStart(global_context_ptr: *GlobalContext, function: *const anyopaque, data_ptr: ?*anyopaque, idx: u32) void {
+    __set_stack_pointer(@ptrFromInt(sp + 0x10_0000 * idx));
+    @call(
+        std.builtin.CallModifier.never_inline,
+        wasm_workerStart,
+        .{ global_context_ptr, @as(*const fn (?*anyopaque) void, @ptrCast(function)), data_ptr, idx },
+    );
 }

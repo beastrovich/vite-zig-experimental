@@ -15,11 +15,14 @@ pub inline fn cpuCount() u16 {
     return __sysGetCoreCount();
 }
 
+
+
 pub fn startThread(startFn: *const fn (?*anyopaque) void, data: ?*anyopaque) void {
     const g = GlobalContext.current();
     const idx = g.thread_idx;
     g.thread_idx += 1;
 
+    std.Thread
     // var fmtBuff: [200]u8 = undefined;
     // const printed = std.fmt.bufPrint(&fmtBuff, "startThread: {d}, {d}", .{
     //     @intFromPtr(g),
