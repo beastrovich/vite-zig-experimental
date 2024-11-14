@@ -16,12 +16,8 @@ export type ModuleImports = {
 
 export type ModuleExports = {
   __wasm_mainStart(): void;
-  __wasm_workerStart(
-    global_context_ptr: number,
-    start_fn_ptr: number,
-    data_ptr: number,
-    idx: number
-  ): void;
+  __threadStartCallback(global_context_ptr: number, instance_ptr: number): void;
+
   // __buffAcquire(width: number, height: number): number;
   // __buffRelease(handle: number): void;
   // __buffGetPtr(handle: number): number;

@@ -35,6 +35,7 @@ pub fn build(b: *std.Build) void {
     wasmArt.entry = .disabled;
     wasmArt.import_memory = true;
     wasmArt.shared_memory = true;
+    wasmArt.libc_file = null;
 
     const pageSize: usize = 64 * 1024;
     const mibi: usize = 1024 * 1024;

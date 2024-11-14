@@ -1,7 +1,5 @@
 export type ProcessHostMessageType = {
   type: "worker:start";
   globalContextPtr: number;
-  startFnPtr: number;
-  dataPtr: number;
-  idx: number;
+  instancePtr: number;
 };

@@ -6,9 +6,7 @@ export type MessageType =
       type: "init:worker";
       memory: WebAssembly.Memory;
       globalContextPtr: number;
-      startFnPtr: number;
-      dataPtr: number;
-      idx: number;
+      instancePtr: number;
     }
   | {
       type: "init:main";
@@ -24,14 +22,12 @@ async function initMain(memory: WebAssembly.Memory) {
 async function initWorker(
   memory: WebAssembly.Memory,
   globalsPtr: number,
-  startFnPtr: number,
-  dataPtr: number,
-  idx: number
+  instancePtr: number
 ) {
   const imports = createImports(memory);
   const wasm = await createModule(memory, imports);
-  console.log("web-worker: initWorker", globalsPtr, startFnPtr, dataPtr, idx);
-  wasm.exports.__wasm_workerStart(globalsPtr, startFnPtr, dataPtr, idx);
+  console.log("web-worker: initWorker", globalsPtr, instancePtr);
+  wasm.exports.__threadStartCallback(globalsPtr, instancePtr);
 }
 
 self.addEventListener("message", ({ data }: MessageEvent<MessageType>) => {
@@ -41,13 +37,7 @@ self.addEventListener("message", ({ data }: MessageEvent<MessageType>) => {
       break;
     }
     case "init:worker": {
-      initWorker(
-        data.memory,
-        data.globalContextPtr,
-        data.startFnPtr,
-        data.dataPtr,
-        data.idx
-      );
+      initWorker(data.memory, data.globalContextPtr, data.instancePtr);
       break;
     }
   }

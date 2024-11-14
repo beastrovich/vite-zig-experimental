@@ -18,10 +18,10 @@ fn spinWait(iterations: u32) void {
     std.mem.doNotOptimizeAway(x);
 }
 
-fn startFn(data: ?*anyopaque) void {
+fn startFn() void {
     const g = GlobalContext.current();
     // _ = g; // autofix
-    _ = data;
+    // _ = data;
     const id = g.unique.fetchAdd(1, .monotonic);
 
     // Create a stack buffer to test
@@ -80,14 +80,14 @@ fn startFn(data: ?*anyopaque) void {
     // }
 }
 
-pub fn main() void {
-    Env.startThread(&startFn, null);
-    Env.startThread(&startFn, null);
-    Env.startThread(&startFn, null);
-    Env.startThread(&startFn, null);
-    Env.startThread(&startFn, null);
-    Env.startThread(&startFn, null);
-    Env.startThread(&startFn, null);
+pub fn main() !void {
+    try Env.startThread(startFn, .{});
+    try Env.startThread(startFn, .{});
+    try Env.startThread(startFn, .{});
+    try Env.startThread(startFn, .{});
+    try Env.startThread(startFn, .{});
+    try Env.startThread(startFn, .{});
+    try Env.startThread(startFn, .{});
     // Env.startThread(&startFn, null);
     // Env.startThread(&startFn, null);
 }

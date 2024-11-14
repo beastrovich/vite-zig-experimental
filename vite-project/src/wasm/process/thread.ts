@@ -16,19 +16,15 @@ export function startMainThread(memory: WebAssembly.Memory) {
 export function startWorkerThread(
   memory: WebAssembly.Memory,
   globalContextPtr: number,
-  startFnPtr: number,
-  dataPtr: number,
-  idx: number
+  instancePtr: number
 ) {
   const worker = new Worker();
 
   const initMsg: MessageType = {
     type: "init:worker",
-    globalContextPtr,
-    startFnPtr,
-    dataPtr,
     memory,
-    idx,
+    globalContextPtr,
+    instancePtr,
   };
 
   worker.postMessage(initMsg);

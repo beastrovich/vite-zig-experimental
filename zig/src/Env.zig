@@ -2,6 +2,7 @@ const std = @import("std");
 
 const Self = @This();
 const builtin = @import("builtin");
+const GlobalContext = @import("./GlobalContext.zig");
 
 const Impl = if (builtin.target.isWasm() and builtin.target.os.tag == .freestanding)
     @import("./Env.BrowserEnv.zig")
@@ -21,6 +22,6 @@ pub fn logFmtSmall(comptime bufferSize: usize, comptime fmt: []const u8, args: a
     log(printed);
 }
 
-pub fn startThread(startFn: *const fn (?*anyopaque) void, data: ?*anyopaque) void {
-    Impl.startThread(startFn, data);
+pub fn startThread(comptime startFn: anytype, args: anytype) !void {
+    try Impl.startThread(startFn, args);
 }

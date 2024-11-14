@@ -23,15 +23,9 @@ export class Process {
   #handleWorkerMessage = (event: MessageEvent<ProcessHostMessageType>) => {
     switch (event.data.type) {
       case "worker:start": {
-        const { dataPtr, globalContextPtr, startFnPtr, idx } = event.data;
+        const { globalContextPtr, instancePtr } = event.data;
         this.#onThreadStart(
-          startWorkerThread(
-            this.#memory,
-            globalContextPtr,
-            startFnPtr,
-            dataPtr,
-            idx
-          )
+          startWorkerThread(this.#memory, globalContextPtr, instancePtr)
         );
         break;
       }
