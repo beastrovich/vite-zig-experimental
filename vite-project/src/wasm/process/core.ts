@@ -1,22 +1,20 @@
 import wasmUrl from "./wasm.wasm?url";
 
 export type ModuleImports = {
-  js: {
-    __sysGetCoreCount(): number;
-    __consoleLog(ptr: number, len: number): void;
-    __workerStart(
-      global_context_ptr: number,
-      start_fn_ptr: number,
-      data_ptr: number,
-      idx: number
-    ): void;
-    // __setTimeout(timeout: number, cbPtr: number, statePtr: number): void;
+  sys: {
+    cpuCount(): number;
+  };
+  console: {
+    log(ptr: number, len: number): void;
+  };
+  web_worker: {
+    start(ptr: number): void;
   };
 };
 
 export type ModuleExports = {
   __wasm_mainStart(): void;
-  __threadStartCallback(global_context_ptr: number, instance_ptr: number): void;
+  __wasm_threadStart(ptr: number): void;
 
   // __buffAcquire(width: number, height: number): number;
   // __buffRelease(handle: number): void;

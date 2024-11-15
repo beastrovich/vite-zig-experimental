@@ -1,5 +1,11 @@
-export type ProcessHostMessageType = {
-  type: "worker:start";
-  globalContextPtr: number;
-  instancePtr: number;
-};
+export type ProcessHostMessageType =
+  | {
+      type: "worker:start";
+      ptr: number;
+    }
+  | {
+      type: "worker:closed";
+    }
+  | {
+      type: "main:closed";
+    };

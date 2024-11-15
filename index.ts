@@ -38,7 +38,8 @@ const runRebuild = async () => {
     console.error("Zig build failed");
   }
 
-  await $`
+  try {
+    await $`
     cd ${zigProjPath}
     zig build
     cargo wasm2map zig-out/bin/wasm.wasm --patch --base-url http://localhost:5173
@@ -46,27 +47,33 @@ const runRebuild = async () => {
     echo "Wasm source map generated"
   `;
 
-  const mapFile = Bun.file(Path.join(zigProjPath, "zig-out/bin/wasm.wasm.map"));
+    const mapFile = Bun.file(
+      Path.join(zigProjPath, "zig-out/bin/wasm.wasm.map")
+    );
 
-  const mapOutput = JSON.parse(await mapFile.text());
+    const mapOutput = JSON.parse(await mapFile.text());
 
-  mapOutput.sourcesContent = [];
-  for (const source of mapOutput.sources) {
-    const content = Path.isAbsolute(source)
-      ? await Bun.file(source).text()
-      : await Bun.file(Path.join(zigProjPath, "src", source)).text();
-    mapOutput.sourcesContent.push(content);
-  }
+    mapOutput.sourcesContent = [];
+    for (const source of mapOutput.sources) {
+      const content = Path.isAbsolute(source)
+        ? await Bun.file(source).text()
+        : await Bun.file(Path.join(zigProjPath, "src", source)).text();
+      mapOutput.sourcesContent.push(content);
+    }
 
-  await Bun.write(mapFile, JSON.stringify(mapOutput, null, 2));
+    await Bun.write(mapFile, JSON.stringify(mapOutput, null, 2));
 
-  console.log("Wasm source map content added");
+    console.log("Wasm source map content added");
 
-  await $`
+    await $`
     cd ${zigProjPath}
-    cp zig-out/bin/wasm.wasm.map ../vite-project/public/
+    wasm2wat zig-out/bin/wasm.wasm --enable-all -o zig-out/bin/wasm.wat
+    cp zig-out/bin/*.map ../vite-project/public/
     echo "Wasm source map copied"
   `;
+  } catch (e) {
+    console.error(e);
+  }
 
   if (queuedRebuild) {
     queuedRebuild = false;

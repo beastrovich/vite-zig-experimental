@@ -13,18 +13,13 @@ export function startMainThread(memory: WebAssembly.Memory) {
   return worker;
 }
 
-export function startWorkerThread(
-  memory: WebAssembly.Memory,
-  globalContextPtr: number,
-  instancePtr: number
-) {
+export function startWorkerThread(memory: WebAssembly.Memory, ptr: number) {
   const worker = new Worker();
 
   const initMsg: MessageType = {
     type: "init:worker",
     memory,
-    globalContextPtr,
-    instancePtr,
+    ptr,
   };
 
   worker.postMessage(initMsg);

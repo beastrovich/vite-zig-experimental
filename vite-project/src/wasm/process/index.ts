@@ -23,10 +23,16 @@ export class Process {
   #handleWorkerMessage = (event: MessageEvent<ProcessHostMessageType>) => {
     switch (event.data.type) {
       case "worker:start": {
-        const { globalContextPtr, instancePtr } = event.data;
-        this.#onThreadStart(
-          startWorkerThread(this.#memory, globalContextPtr, instancePtr)
-        );
+        const { ptr } = event.data;
+        this.#onThreadStart(startWorkerThread(this.#memory, ptr));
+        break;
+      }
+      case "worker:closed": {
+        console.log("Worker thread closed");
+        break;
+      }
+      case "main:closed": {
+        console.log("Main thread closed");
         break;
       }
       default: {

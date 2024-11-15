@@ -22,19 +22,21 @@ function decodeText(buffer: ArrayBuffer, start: number, len: number) {
 
 export function createImports(memory: WebAssembly.Memory): ModuleImports {
   return {
-    js: {
-      __sysGetCoreCount() {
-        return navigator.hardwareConcurrency;
-      },
-      __consoleLog(ptr, len) {
+    console: {
+      log(ptr, len) {
         console.log(decodeText(memory.buffer, ptr, len));
       },
-      __workerStart(global_context_ptr, instance_ptr) {
-        // console.log("Worker start", global_context_ptr, start_fn_ptr, data_ptr);
+    },
+    sys: {
+      cpuCount() {
+        return navigator.hardwareConcurrency;
+      },
+    },
+    web_worker: {
+      start(ptr) {
         self.postMessage({
           type: "worker:start",
-          globalContextPtr: global_context_ptr,
-          instancePtr: instance_ptr,
+          ptr,
         });
       },
     },

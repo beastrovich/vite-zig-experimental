@@ -5,29 +5,39 @@ export type MessageType =
   | {
       type: "init:worker";
       memory: WebAssembly.Memory;
-      globalContextPtr: number;
-      instancePtr: number;
+      ptr: number;
     }
   | {
       type: "init:main";
       memory: WebAssembly.Memory;
     };
 
+let isMain = false;
+
 async function initMain(memory: WebAssembly.Memory) {
+  isMain = true;
   const imports = createImports(memory);
   const wasm = await createModule(memory, imports);
   wasm.exports.__wasm_mainStart();
+  close();
 }
 
-async function initWorker(
-  memory: WebAssembly.Memory,
-  globalsPtr: number,
-  instancePtr: number
-) {
+async function initWorker(memory: WebAssembly.Memory, ptr: number) {
   const imports = createImports(memory);
   const wasm = await createModule(memory, imports);
-  console.log("web-worker: initWorker", globalsPtr, instancePtr);
-  wasm.exports.__threadStartCallback(globalsPtr, instancePtr);
+  console.log("web-worker: initWorker", ptr);
+  wasm.exports.__wasm_threadStart(ptr);
+  close();
+}
+
+function close() {
+  if (isMain) {
+    self.postMessage({ type: "main:closed" });
+  } else {
+    self.postMessage({ type: "worker:closed" });
+  }
+  self.close();
+  console.log("web-worker: closed");
 }
 
 self.addEventListener("message", ({ data }: MessageEvent<MessageType>) => {
@@ -37,7 +47,7 @@ self.addEventListener("message", ({ data }: MessageEvent<MessageType>) => {
       break;
     }
     case "init:worker": {
-      initWorker(data.memory, data.globalContextPtr, data.instancePtr);
+      initWorker(data.memory, data.ptr);
       break;
     }
   }

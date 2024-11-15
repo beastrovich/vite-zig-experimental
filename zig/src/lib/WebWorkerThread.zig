@@ -1,32 +1,31 @@
 const std = @import("std");
+
 const Self = @This();
-const GlobalContext = @import("./GlobalContext.zig");
-
-extern "js" fn __sysGetCoreCount() u16;
-
-extern "js" fn __consoleLog(s: [*]const u8, sLen: usize) void;
-
-pub inline fn log(s: []const u8) void {
-    __consoleLog(s.ptr, s.len);
-}
-
-pub inline fn cpuCount() u16 {
-    return __sysGetCoreCount();
-}
+// const GlobalContext = @import("./GlobalContext.zig");
 
 const ThreadInstance = struct {
     memory: []u8,
-    data_ptr: usize,
+    wrapper_ptr: usize,
     entry: *const fn (usize) void,
     original_stack_ptr: [*]u8,
     stack_offset: usize,
+    allocator: std.mem.Allocator,
+};
+
+const ThreadConfig = struct {
+    stack_size: usize = 1024 * 1024, // 1MB
+    allocator: std.mem.Allocator,
 };
 
 pub const StartThreadError = error{
     OutOfMemory,
 };
 
-pub fn startThread(comptime start: anytype, args: anytype) StartThreadError!void {
+pub fn spawn(
+    config: ThreadConfig,
+    comptime start: anytype,
+    args: anytype,
+) StartThreadError!void {
     comptime {
         const arg_ti = @typeInfo(@TypeOf(args));
         switch (arg_ti) {
@@ -34,11 +33,8 @@ pub fn startThread(comptime start: anytype, args: anytype) StartThreadError!void
             else => @compileError("Unsupported argument type for thread start function"),
         }
     }
-    // const g = GlobalContext.current();
-    // const idx = g.thread_idx;
-    // g.thread_idx += 1;
 
-    const g = GlobalContext.current();
+    // const g = GlobalContext.current();
 
     const Wrapper = struct {
         args: @TypeOf(args),
@@ -55,8 +51,6 @@ pub fn startThread(comptime start: anytype, args: anytype) StartThreadError!void
         }
     };
 
-    const thread_stack_size = 1024 * 1024; // 1MB
-
     var stack_offset: usize = 0;
     var wrapper_offset: usize = 0;
     var instance_offset: usize = 0;
@@ -65,7 +59,7 @@ pub fn startThread(comptime start: anytype, args: anytype) StartThreadError!void
         var bytes: usize = std.mem.page_size;
 
         bytes = std.mem.alignForward(usize, bytes, 16);
-        bytes += @max(std.mem.page_size, thread_stack_size);
+        bytes += @max(std.mem.page_size, config.stack_size);
         stack_offset = bytes;
 
         bytes = std.mem.alignForward(usize, bytes, @alignOf(Wrapper));
@@ -81,7 +75,7 @@ pub fn startThread(comptime start: anytype, args: anytype) StartThreadError!void
         break :blk bytes;
     };
 
-    const allocator = std.heap.wasm_allocator;
+    const allocator = config.allocator;
 
     const allocated_memory = try allocator.alloc(u8, map_bytes);
 
@@ -92,25 +86,37 @@ pub fn startThread(comptime start: anytype, args: anytype) StartThreadError!void
 
     const instance: *ThreadInstance = @ptrCast(@alignCast(&allocated_memory[instance_offset]));
     instance.* = .{
+        .allocator = config.allocator,
         .memory = allocated_memory,
-        .data_ptr = @intFromPtr(wrapper),
+        .wrapper_ptr = @intFromPtr(wrapper),
         .entry = &Wrapper.entry,
         .original_stack_ptr = __get_stack_pointer(),
         .stack_offset = stack_offset,
     };
 
-    __workerStart(
-        g,
-        instance,
-    );
+    startWorker.*(instance);
 }
 
-extern "js" fn __workerStart(global_context_ptr: *GlobalContext, instance_ptr: *ThreadInstance) void;
+const lib_name = "web_worker";
 
-export fn __threadStartCallback(global_context_ptr: *GlobalContext, instance_ptr: *ThreadInstance) void {
-    __set_stack_pointer(instance_ptr.memory.ptr + instance_ptr.stack_offset);
-    GlobalContext.setCurrent(global_context_ptr);
-    instance_ptr.entry(instance_ptr.data_ptr);
+fn extern_fn(comptime T: type, comptime name: []const u8) T {
+    return @extern(T, .{
+        .library_name = lib_name,
+        .name = name,
+    });
+}
+
+const startWorker = extern_fn(
+    *const fn (*ThreadInstance) callconv(.C) void,
+    "start",
+);
+
+export fn __wasm_threadStart(instance: *ThreadInstance) void {
+    __set_stack_pointer(instance.memory.ptr + instance.stack_offset);
+    instance.entry(instance.wrapper_ptr);
+    __set_stack_pointer(instance.original_stack_ptr);
+    const alloc = instance.allocator;
+    alloc.free(instance.memory);
 }
 
 /// Initializes the TLS data segment starting at `memory`.
@@ -165,19 +171,3 @@ inline fn __get_stack_pointer() [*]u8 {
         : [stack_ptr] "=r" (-> [*]u8),
     );
 }
-
-// fn wasm_workerStart(global_context_ptr: *GlobalContext, function: *const fn (?*anyopaque) void, data_ptr: ?*anyopaque, idx: u32) void {
-//     _ = idx; // autofix
-//     Env.log("zig: __wasm_workerStart");
-//     GlobalContext.setCurrent(global_context_ptr);
-//     function(data_ptr);
-// }
-
-// pub export fn __wasm_workerStart(global_context_ptr: *GlobalContext, function: *const anyopaque, data_ptr: ?*anyopaque, idx: u32) void {
-//     // __set_stack_pointer(@ptrFromInt(sp + 0x10_0000 * idx));
-//     @call(
-//         std.builtin.CallModifier.never_inline,
-//         wasm_workerStart,
-//         .{ global_context_ptr, @as(*const fn (?*anyopaque) void, @ptrCast(function)), data_ptr, idx },
-//     );
-// }

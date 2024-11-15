@@ -1,10 +1,8 @@
 const std = @import("std");
-const Env = @import("./Env.zig");
-const entry = @import("./entry.zig");
+const lib = @import("./lib.zig");
 
 comptime {
-    _ = Env;
-    _ = entry;
+    lib.sys.declareMain(@import("./App.zig").main);
 }
 
 // comptime {
